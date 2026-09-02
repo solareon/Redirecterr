@@ -12,11 +12,19 @@ const schema: Schema = {
     $schema: "http://json-schema.org/draft-07/schema#",
     type: "object",
     properties: {
-        overseerr_url: {
+        seerr_url: {
             type: "string",
             minLength: 1,
         },
-        overseerr_api_token: {
+        seerr_api_token: {
+            type: "string",
+            minLength: 1,
+        },
+        seerr_email: {
+            type: "string",
+            minLength: 1,
+        },
+        seerr_password: {
             type: "string",
             minLength: 1,
         },
@@ -119,7 +127,7 @@ const schema: Schema = {
             },
         },
     },
-    required: ["overseerr_url", "overseerr_api_token", "instances", "filters"],
+    required: ["seerr_url", "seerr_api_token", "instances", "filters"],
 }
 
 /**
@@ -159,7 +167,7 @@ const loadConfig = async (): Promise<Config> => {
             logger.debug("Debug mode enabled")
 
             const replacer = (key: string, value: any) => {
-                if (key === "overseerr_api_token") return "REDACTED"
+                if (key === "seerr_api_token") return "REDACTED"
                 return value
             }
 
