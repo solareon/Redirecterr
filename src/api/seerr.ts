@@ -74,6 +74,11 @@ const captureCookies = (response: Response): void => {
  * API-key-only requests would otherwise be rejected with 403 Forbidden.
  */
 const authenticate = async (): Promise<void> => {
+    // Start a fresh session: drop any stale auth state so the re-auth path
+    // doesn't reuse an expired session cookie or CSRF token.
+    authenticated = false
+    csrfToken = null
+
     if (!config.seerr_email || !config.seerr_password) {
         throw new Error(
             "CSRF-secured Seerr requires seerr_email and seerr_password in config.yaml to start a local session"
@@ -136,11 +141,37 @@ const resolveHeaders = async (): Promise<Record<string, string>> => {
 }
 
 /**
+ * Perform a fetch against Seerr, re-authenticating and retrying once when the
+ * stored session/CSRF state is stale (Seerr returns 401 on session expiry and
+ * 403 on CSRF failures). Retrying is only attempted when CSRF auth has been
+ * configured, since otherwise a retry could never succeed.
+ */
+const requestSeerr = async (url: URL, init: RequestInit = {}): Promise<Response> => {
+    const csrfConfigured = Boolean(config.seerr_email && config.seerr_password)
+
+    const doFetch = async (allowRetry: boolean): Promise<Response> => {
+        const response = await fetch(url, {
+            ...init,
+            headers: { ...(init.headers as Record<string, string> | undefined), ...(await resolveHeaders()) },
+        })
+
+        if (csrfConfigured && allowRetry && (response.status === 401 || response.status === 403)) {
+            logger.warn(`Re-authenticating with Seerr after ${response.status} response`)
+            return doFetch(false)
+        }
+
+        return response
+    }
+
+    return doFetch(true)
+}
+
+/**
  * Fetch data from Seerr API
  */
 export const fetchFromSeerr = async (endpoint: string): Promise<any> => {
     const url = new URL(endpoint, config.seerr_url)
-    const response = await fetch(url, { headers: await resolveHeaders() })
+    const response = await requestSeerr(url)
 
     if (!response.ok || response.status !== 200) {
         throw new Error(`could not retrieve data from Seerr: ${response.status} ${response.statusText}`)
@@ -156,7 +187,7 @@ export const fetchFromSeerr = async (endpoint: string): Promise<any> => {
 export const approveRequest = async (requestId: string): Promise<void> => {
     try {
         const url = new URL(`/api/v1/request/${requestId}/approve`, config.seerr_url)
-        const response = await fetch(url, { method: "POST", headers: await resolveHeaders() })
+        const response = await requestSeerr(url, { method: "POST" })
 
         if (!response.ok) {
             throw new Error(`${response.status} ${response.statusText}`)
@@ -174,9 +205,8 @@ export const approveRequest = async (requestId: string): Promise<void> => {
 export const applyConfig = async (requestId: string, postData: Record<string, any>): Promise<void> => {
     try {
         const url = new URL(`/api/v1/request/${requestId}`, config.seerr_url)
-        const response = await fetch(url, {
+        const response = await requestSeerr(url, {
             method: "PUT",
-            headers: await resolveHeaders(),
             body: JSON.stringify(postData),
         })
 
