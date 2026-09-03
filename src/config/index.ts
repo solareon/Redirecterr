@@ -20,6 +20,14 @@ const schema: Schema = {
             type: "string",
             minLength: 1,
         },
+        overseerr_url: {
+            type: "string",
+            minLength: 1,
+        },
+        overseerr_api_token: {
+            type: "string",
+            minLength: 1,
+        },
         seerr_email: {
             type: "string",
             minLength: 1,
@@ -127,7 +135,15 @@ const schema: Schema = {
             },
         },
     },
-    required: ["seerr_url", "seerr_api_token", "instances", "filters"],
+    required: ["instances", "filters"],
+    anyOf: [
+        {
+            required: ["seerr_url", "seerr_api_token"],
+        },
+        {
+            required: ["overseerr_url", "overseerr_api_token"],
+        },
+    ],
 }
 
 /**
@@ -162,6 +178,19 @@ const loadConfig = async (): Promise<Config> => {
         if (!validate(config)) {
             throw new Error(`\n${formatErrors(validate.errors)}`)
         }
+
+        // Backwards compatibility: accept legacy overseerr_* names. seerr_*
+        // takes precedence when both are present. Normalize to the canonical
+        // seerr_* fields so the rest of the app only reads seerr_*.
+        const raw = config as unknown as Record<string, unknown>
+        if (!raw.seerr_url && raw.overseerr_url) {
+            raw.seerr_url = raw.overseerr_url
+        }
+        if (!raw.seerr_api_token && raw.overseerr_api_token) {
+            raw.seerr_api_token = raw.overseerr_api_token
+        }
+        delete raw.overseerr_url
+        delete raw.overseerr_api_token
 
         if (logger.isDebugEnabled()) {
             logger.debug("Debug mode enabled")

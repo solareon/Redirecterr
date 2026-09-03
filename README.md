@@ -59,6 +59,9 @@ approve_on_no_match: true # Auto-approve if no filters match
 ```
 
 > [!NOTE]
+> The legacy `overseerr_url` / `overseerr_api_token` names are still accepted for backwards compatibility. Provide either the new `seerr_*` names or the old `overseerr_*` names (do not mix). `seerr_*` takes precedence when both are present.
+
+> [!NOTE]
 > `seerr_email` and `seerr_password` are optional. They're only required when CSRF protection is enabled on Seerr (Settings -> Security), where API-key-only requests are rejected with 403. If set, Redirecterr logs into a local session to satisfy CSRF.
 
 ```yaml
