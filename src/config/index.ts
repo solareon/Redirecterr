@@ -196,7 +196,7 @@ const loadConfig = async (): Promise<Config> => {
             logger.debug("Debug mode enabled")
 
             const replacer = (key: string, value: any) => {
-                if (key === "seerr_api_token") return "REDACTED"
+                if (key === "seerr_api_token" || key === "seerr_password") return "REDACTED"
                 return value
             }
 
