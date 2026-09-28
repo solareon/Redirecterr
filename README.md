@@ -28,24 +28,7 @@ In Seerr go to **Settings -> Notifications -> Webhook** and configure the follow
 - **Enable Agent**: Enabled
 - **Webhook URL**: `http://redirecterr:8481/webhook`
 - **Notification Types**: Select **Request Pending Approval**
-- **JSON Payload**:
-  ```json
-  {
-  	"notification_type": "{{notification_type}}",
-  	"media": {
-  		"media_type": "{{media_type}}",
-  		"tmdbId": "{{media_tmdbid}}",
-  		"status": "{{media_status}}",
-  		"status4k": "{{media_status4k}}"
-  	},
-  	"request": {
-  		"request_id": "{{request_id}}",
-  		"requestedBy_email": "{{requestedBy_email}}",
-  		"requestedBy_username": "{{requestedBy_username}}"
-  	},
-  	"{{extra}}": []
-  }
-  ```
+- **JSON Payload**: Reset to default
 
 ## Config
 
