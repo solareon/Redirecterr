@@ -39,8 +39,10 @@ export interface OpenJevConfig {
 }
 
 export interface Config {
-    overseerr_url: string
-    overseerr_api_token: string
+    seerr_url: string
+    seerr_api_token: string
+    seerr_email?: string
+    seerr_password?: string
     approve_on_no_match?: boolean
     openjev?: OpenJevConfig
     instances: {
