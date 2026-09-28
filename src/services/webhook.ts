@@ -1,6 +1,6 @@
 import logger from "../utils/logger"
 import { config } from "../config"
-import { approveRequest, declineRequest, fetchFromOverseerr } from "../api/seerr"
+import { approveRequest, declineRequest, fetchFromSeerr } from "../api/seerr"
 import { getPostData } from "../utils/helpers"
 import { evaluateFilters } from "./filter"
 import { sendToInstances } from "./instance"
