@@ -5,7 +5,7 @@
 ```yaml
 services:
   redirecterr:
-    image: varthe/redirecterr:latest
+    image: ghcr.io/solareon/redirecterr:latest
     container_name: redirecterr
     hostname: redirecterr
     ports:
@@ -15,6 +15,7 @@ services:
       - /path/to/logs:/logs
     environment:
       - LOG_LEVEL=info
+      - OPENJEV_API_KEY= # Required only when an OpenJEV filter is configured
 ```
 
 ## Webhook setup
@@ -56,6 +57,18 @@ Create a `config.yaml` file with the following sections:
 overseerr_url: ""
 overseerr_api_token: ""
 approve_on_no_match: true # Auto-approve if no filters match
+```
+
+### OpenJEV settings
+
+[OpenJEV](https://openjev.sh/docs) can classify a request after its normal filter conditions match. The API key can be supplied with the `OPENJEV_API_KEY` environment variable (recommended) or in this optional section:
+
+```yaml
+openjev:
+  # api_key: "" # Prefer OPENJEV_API_KEY so the secret is not stored in this file
+  # endpoint: "https://api.openjev.sh/v1/systemone"
+  # model: "openjev"
+  # timeout_ms: 10000
 ```
 
 ### Instances
@@ -112,6 +125,32 @@ filters:
 > [!TIP]  
 > For a list of possible condition fields see [fields.md](https://github.com/varthe/Redirecterr/blob/main/fields.md)
 
+#### OpenJEV content decisions
+
+Add `openjev` to a filter to make a yes/no (`noul`) content decision. Redirecterr evaluates `conditions` first, so only the selected users and media types are sent to OpenJEV. A result at or above `deny_threshold` declines the pending request through Seerr; a lower result routes and approves it through the filter's normal `apply` target.
+
+```yaml
+filters:
+  - media_type: movie
+    conditions:
+      requestedBy_username:
+        include: ["child-user", "guest-user"]
+    openjev:
+      instructions: >-
+        Could this movie contain sexually explicit material or nudity that is
+        unsuitable for a child? Use the title, synopsis, genres, keywords,
+        adult flag, and content ratings in the supplied media metadata.
+      deny_threshold: 0.70
+      on_error: deny
+    apply: radarr
+```
+
+- `instructions`: Required policy question. Define what counts as explicit for your household.
+- `deny_threshold`: Optional number from `0` to `1`; default `0.5`.
+- `on_error`: Optional `deny` or `allow`; default `deny` (fail closed).
+
+OpenJEV receives the media title/name, synopsis, tagline, genres, keywords, dates, `adult` flag, content ratings, media type, TMDB ID, and requester username. The requester email is not sent. OpenJEV does not browse external URLs; classification quality depends on Seerr's metadata. Tune the threshold against representative titles before enabling automatic declines.
+
 ### Sample config
 
 ```yaml
@@ -130,6 +169,16 @@ instances:
   sonarr_anime:
     server_id: 2
     root_folder: "/mnt/plex/Anime"
+  radarr:
+    server_id: 0
+    root_folder: "/mnt/plex/Movies"
+  radarr_4k:
+    server_id: 1
+    root_folder: "/mnt/plex/Movies - 4K"
+  radarr_anime:
+    server_id: 2
+    root_folder: "/mnt/plex/Anime Movies"
+
 
 filters:
   # Send anime to sonarr_anime
@@ -141,4 +190,14 @@ filters:
   # Send everything else to sonarr and sonarr_4k instances
   - media_type: tv
     apply: ["sonarr", "sonarr_4k"]
+
+  # Send anime to radarr_anime
+  - media_type: movies
+    conditions:
+      keywords: anime
+    apply: radarr_anime
+
+  # Send everything else to radarr and radarr_4k instances
+  - media_type: movies
+    apply: ["radarr", "radarr_4k"]
 ```

@@ -2,7 +2,7 @@ export interface Webhook {
     notification_type: string
     media: Media
     request: Request
-    extra?: Array<any>
+    extra?: WebhookExtra[]
 }
 
 export interface Media {
@@ -16,6 +16,7 @@ export interface Request {
     request_id: string
     requestedBy_username: string
     requestedBy_email: string
+    [key: string]: unknown
 }
 
 export interface MediaData {
@@ -23,7 +24,7 @@ export interface MediaData {
     originalName?: string
     keywords: Array<Keyword>
     contentRatings: ContentRatings
-    [key: string]: any
+    [key: string]: unknown
 }
 
 export interface Keyword {
@@ -37,6 +38,11 @@ export interface ContentRating {
 
 export interface ContentRatings {
     results: ContentRating[]
+}
+
+export interface WebhookExtra {
+    name: string
+    value?: string
 }
 
 export interface PostData {

@@ -1,8 +1,8 @@
 import logger from "../utils/logger"
 import { config } from "../config"
-import { approveRequest, fetchFromOverseerr } from "../api/overseerr"
+import { approveRequest, declineRequest, fetchFromOverseerr } from "../api/overseerr"
 import { getPostData } from "../utils/helpers"
-import { findInstances } from "./filter"
+import { evaluateFilters } from "./filter"
 import { sendToInstances } from "./instance"
 import { buildDebugLogMessage } from "../utils/helpers"
 import type { Webhook } from "../types"
@@ -63,20 +63,27 @@ export const handleWebhook = async (webhook: Webhook): Promise<Response> => {
             )
         }
 
-        // Find matching instances based on filters
-        const instances = findInstances(webhook, data, config.filters)
-        const postData = getPostData(webhook)
-        
-        // Process request based on filter matches
-        if (instances) {
-            await sendToInstances(instances, request.request_id, postData)
-            return createResponse("success", `Request processed and sent to instances`, 200)
-        } else if (config.approve_on_no_match) {
+        // Evaluate local filter conditions before any external classification.
+        const decision = await evaluateFilters(webhook, data, config.filters, config.openjev)
+
+        if (decision?.action === "deny") {
+            logger.info(`Declining request ID ${request.request_id}: ${decision.reason}`)
+            await declineRequest(request.request_id)
+            return createResponse("success", "Request declined by content filter", 200)
+        }
+
+        if (decision?.action === "route") {
+            const postData = getPostData(webhook)
+            await sendToInstances(decision.instances, request.request_id, postData)
+            return createResponse("success", "Request processed and sent to instances", 200)
+        }
+
+        if (config.approve_on_no_match) {
             logger.info(`Approving unmatched request ID ${request.request_id}`)
             await approveRequest(request.request_id)
             return createResponse("success", "Request approved (no matching filter)", 200)
         }
-        
+
         return createResponse("success", "Request processed (no action taken)", 200)
     } catch (error) {
         return createResponse("error", `Error processing webhook: ${error}`, 500)

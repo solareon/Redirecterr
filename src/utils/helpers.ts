@@ -35,7 +35,7 @@ export const getPostData = (requestData: Webhook): PostData => {
         .map(Number)
         .filter(Number.isInteger)
 
-    if (seasons?.length > 0) {
+    if (seasons && seasons.length > 0) {
         postData["seasons"] = seasons
     }
 

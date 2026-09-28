@@ -42,6 +42,20 @@ export const approveRequest = async (requestId: string): Promise<void> => {
 }
 
 /**
+ * Decline a pending request in Seerr.
+ */
+export const declineRequest = async (requestId: string): Promise<void> => {
+    const url = new URL(`/api/v1/request/${requestId}/decline`, config.overseerr_url)
+    const response = await fetch(url, { method: "POST", headers })
+
+    if (!response.ok) {
+        throw new Error(`could not decline request: ${response.status} ${response.statusText}`)
+    }
+
+    logger.info(`Request ID ${requestId} declined successfully`)
+}
+
+/**
  * Apply configuration to a request in Overseerr
  */
 export const applyConfig = async (requestId: string, postData: Record<string, any>): Promise<void> => {

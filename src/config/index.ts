@@ -23,6 +23,27 @@ const schema: Schema = {
         approve_on_no_match: {
             type: "boolean",
         },
+        openjev: {
+            type: "object",
+            properties: {
+                api_key: {
+                    type: "string",
+                    minLength: 1,
+                },
+                endpoint: {
+                    type: "string",
+                },
+                model: {
+                    type: "string",
+                    minLength: 1,
+                },
+                timeout_ms: {
+                    type: "integer",
+                    minimum: 1,
+                },
+            },
+            additionalProperties: false,
+        },
         instances: {
             type: "object",
             patternProperties: {
@@ -104,6 +125,26 @@ const schema: Schema = {
                             ],
                         },
                     },
+                    openjev: {
+                        type: "object",
+                        properties: {
+                            instructions: {
+                                type: "string",
+                                minLength: 1,
+                            },
+                            deny_threshold: {
+                                type: "number",
+                                minimum: 0,
+                                maximum: 1,
+                            },
+                            on_error: {
+                                type: "string",
+                                enum: ["allow", "deny"],
+                            },
+                        },
+                        required: ["instructions"],
+                        additionalProperties: false,
+                    },
                     apply: {
                         anyOf: [
                             { type: "string" },
@@ -158,8 +199,8 @@ const loadConfig = async (): Promise<Config> => {
         if (logger.isDebugEnabled()) {
             logger.debug("Debug mode enabled")
 
-            const replacer = (key: string, value: any) => {
-                if (key === "overseerr_api_token") return "REDACTED"
+            const replacer = (key: string, value: unknown) => {
+                if (key === "overseerr_api_token" || key === "api_key") return "REDACTED"
                 return value
             }
 
